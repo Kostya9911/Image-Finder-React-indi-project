@@ -5,26 +5,17 @@ import PropTypes from 'prop-types';
 import css from './Modal.module.css';
 
 export const Modal = ({ largeImageURL, closeModal }) => {
-  const pressKeyDown = evt => {
-    if (evt.code === 'Escape') {
-      closeModal(evt);
-    }
-  };
-
   useEffect(() => {
+    const pressKeyDown = evt => {
+      if (evt.code === 'Escape') {
+        closeModal();
+      }
+    };
     window.addEventListener('keydown', pressKeyDown);
     return () => {
       window.removeEventListener('keydown', pressKeyDown);
     };
-  }, []);
-
-  // componentDidMount() {
-  //   window.addEventListener('keydown', this.pressKeyDown);
-  // }
-
-  // componentWillUnmount() {
-  //   window.removeEventListener('keydown', this.pressKeyDown);
-  // }
+  }, [closeModal]);
 
   return (
     <div onClick={closeModal} className={css.Overlay}>

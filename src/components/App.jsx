@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -7,25 +7,22 @@ import { Searchbar } from './Searchbar/Searchbar';
 import { Loader } from './Loader/Loader';
 import { Button } from './Button/Button';
 import { ImageGallery } from './ImageGallery/ImageGallery';
-// import { Scroll } from './Scroll/Scroll';
 
 import { fetchImages } from 'api';
 
 import css from './App.module.css';
 
-export default class App extends Component {
-  state = {
-    query: '',
-    images: [],
-    page: 1,
-    loading: false,
-    error: false,
-    loadMore: false,
-    openModal: false,
-    largeImageURL: '',
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [loadMore, setLoadMore] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
 
-  handleSubmit = evt => {
+  const handleSubmit = evt => {
     evt.preventDefault();
     if (evt.target.elements.query.value.trim().length <= 1) {
       toast.error('Search failed! More characters needed!');
@@ -33,93 +30,78 @@ export default class App extends Component {
       return;
     }
 
-    this.setState({
-      query: `${Date.now()}/${evt.target.elements.query.value.trim()}`,
-      images: [],
-      page: 1,
-      largeImageURL: '',
-    });
+    setQuery(`${Date.now()}/${evt.target.elements.query.value.trim()}`);
+    setImages([]);
+    setPage(1);
+    setLargeImageURL('');
+
     evt.target.reset();
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const handleLoadMore = () => {
+    setPage(page + 1);
+    setTimeout(() => {
+      window.scrollBy({
+        top: 300 * 2,
+        behavior: 'smooth',
+      });
+    }, 700);
   };
 
-  async componentDidUpdate(prevProps, prevState) {
-    if (
-      this.state.page !== prevState.page ||
-      this.state.query !== prevState.query
-    ) {
+  useEffect(() => {
+    if (query === '') {
+      return;
+    }
+    async function getImages() {
       try {
-        this.setState({ loading: true, error: false });
-
-        if (this.state.query.length === 0) {
-          return;
-        }
+        setLoading(true);
+        setError(false);
 
         const { hits, totalHits } = await fetchImages(
-          this.state.query.split('/')[1],
-          this.state.page
+          query.split('/')[1],
+          page
         );
 
-        this.setState(prev => ({
-          images: [...prev.images, ...hits],
-          loadMore: this.state.page < Math.ceil(totalHits / 12),
-        }));
+        setImages(prevImages => [...prevImages, ...hits]);
+        setLoadMore(page < Math.ceil(totalHits / 12));
       } catch (error) {
         toast.error('ERROR');
-        // this.setState({ error: true });
+        setError(true);
       } finally {
-        this.setState({ loading: false });
+        setLoading(false);
       }
     }
-  }
+    getImages();
+  }, [query, page]);
 
-  handleOpenModal = id => {
-    this.setState({ openModal: true });
-    this.setState({
-      largeImageURL: this.state.images.filter(image => image.id === id)[0],
-    });
+  const handleOpenModal = id => {
+    setOpenModal(true);
+    setLargeImageURL(images.filter(image => image.id === id)[0]);
   };
-  handleCloseModal = evt => {
-    // console.log(evt);
-    this.setState({ openModal: false });
+  const handleCloseModal = () => {
+    setOpenModal(false);
   };
 
-  render() {
-    const {
-      images,
-      loading,
-      // error,
-      loadMore,
-      openModal,
-      largeImageURL,
-    } = this.state;
+  return (
+    <div className={css.App}>
+      <Searchbar onSubmit={handleSubmit}></Searchbar>
+      {loading && <Loader />}
+      {error && !loading && <div>!!!ERROR!!!</div>}
+      <Toaster position="top-right" reverseOrder={false} />
+      {images.length > 0 && (
+        <ImageGallery
+          openModal={handleOpenModal}
+          images={images}
+        ></ImageGallery>
+      )}
 
-    return (
-      <div className={css.App}>
-        <Searchbar onSubmit={this.handleSubmit}></Searchbar>
-        {loading && <Loader />}
-        {/* {error && !loading && <div>!!!ERROR!!!</div>} */}
-
-        <Toaster position="top-right" reverseOrder={false} />
-
-        {images.length > 0 && (
-          <ImageGallery
-            openModal={this.handleOpenModal}
-            images={images}
-          ></ImageGallery>
-        )}
-
-        {openModal && (
-          <Modal
-            largeImageURL={{ ...largeImageURL }}
-            closeModal={this.handleCloseModal}
-          ></Modal>
-        )}
-        {loadMore && <Button loadMore={this.handleLoadMore}>Load more</Button>}
-      </div>
-    );
-  }
-}
+      {openModal && (
+        <Modal
+          largeImageURL={{ ...largeImageURL }}
+          closeModal={handleCloseModal}
+        ></Modal>
+      )}
+      {loadMore && <Button loadMore={handleLoadMore}>Load more</Button>}
+    </div>
+  );
+};

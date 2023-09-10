@@ -10,14 +10,9 @@ export const fetchImages = async (name, page) => {
     key: KEY,
     mage_type: 'photo',
     orientation: 'horizontal',
-    per_page: 8,
+    per_page: 12,
   });
 
   const resp = await axios.get(`?${params}`);
   return resp.data;
-
-  // const resp = await axios.get(
-  //   `?q=${name}&page=${page}&key=${KEY}&image_type=photo&=horizontal&per_page=12`
-  // );
-  // return resp.data;
 };
